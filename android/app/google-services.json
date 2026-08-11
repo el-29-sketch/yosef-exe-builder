@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "671244452078",
+    "project_id": "yosef-exam-system",
+    "storage_bucket": "yosef-exam-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671244452078:android:5224e39f146b84eb0733ff",
+        "android_client_info": {
+          "package_name": "com.example.yosef_examination_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4AMalz8T-7AIq49WiZYWbsNQBPUjaPC8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

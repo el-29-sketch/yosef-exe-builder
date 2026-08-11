@@ -1,16 +1,1 @@
-{
-  "hosting": {
-    "public": "build/web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
-}
+{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"yosef-exam-system","appId":"1:671244452078:android:5224e39f146b84eb0733ff","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"yosef-exam-system","appId":"1:671244452078:ios:541e3b6c542f50060733ff","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"yosef-exam-system","appId":"1:671244452078:ios:541e3b6c542f50060733ff","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"yosef-exam-system","configurations":{"android":"1:671244452078:android:5224e39f146b84eb0733ff","ios":"1:671244452078:ios:541e3b6c542f50060733ff","macos":"1:671244452078:ios:541e3b6c542f50060733ff","web":"1:671244452078:web:556748e18be2c8330733ff","windows":"1:671244452078:web:556748e18be2c8330733ff"}}}}}}
