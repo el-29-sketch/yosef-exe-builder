@@ -1,0 +1,37 @@
+name: Build Mac App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest # Kita pinjam komputer Mac dari GitHub!
+
+    steps:
+      - name: Ambil Kode
+        uses: actions/checkout@v4
+
+      - name: Siapkan Mesin Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Izin Mac
+        run: flutter config --enable-macos-desktop
+
+      - name: Unduh Pustaka
+        run: flutter pub get
+
+      - name: Mulai Rakit File Mac (.app)
+        run: flutter build macos --release
+
+      - name: Bungkus menjadi ZIP (Biar aman didownload)
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r Yosef-Exam-Mac.zip yosef_examination_system.app
+
+      - name: Simpan dan Upload Hasil
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yosef-Exam-Mac
+          path: build/macos/Build/Products/Release/Yosef-Exam-Mac.zip
