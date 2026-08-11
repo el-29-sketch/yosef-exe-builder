@@ -1,0 +1,32 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch: # Mengizinkan kita menekan tombol mulai secara manual
+
+jobs:
+  build:
+    runs-on: windows-latest # Kita meminjam komputer Windows milik GitHub
+
+    steps:
+      - name: Ambil Kode
+        uses: actions/checkout@v4
+
+      - name: Siapkan Mesin Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Izin Windows
+        run: flutter config --enable-windows-desktop
+
+      - name: Unduh Pustaka (Pub Get)
+        run: flutter pub get
+
+      - name: Mulai Rakit File EXE
+        run: flutter build windows --release
+
+      - name: Simpan dan Upload Hasil EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yosef-Exam-Windows
+          path: build/windows/x64/runner/Release/
