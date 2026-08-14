@@ -37,6 +37,8 @@ dependencies:
   firebase_core: ^4.13.0
   cloud_firestore: ^6.8.0
   window_manager: ^0.5.2
+  excel: ^4.0.6
+  file_saver: ^0.4.0
 
 dev_dependencies:
   flutter_test:
