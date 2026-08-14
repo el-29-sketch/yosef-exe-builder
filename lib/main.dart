@@ -379,26 +379,44 @@ class DashboardGuru extends StatefulWidget {
 class _DashboardGuruState extends State<DashboardGuru> {
   final TextEditingController _menitController = TextEditingController();
   final TextEditingController _pertanyaanController = TextEditingController();
-  final TextEditingController _opsiAController = TextEditingController();
-  final TextEditingController _opsiBController = TextEditingController();
-  final TextEditingController _opsiCController = TextEditingController();
-  final TextEditingController _opsiDController = TextEditingController();
+
+  // BARU: Menyimpan opsi menggunakan List agar dinamis (Bisa nambah E, F, dst)
+  List<TextEditingController> _opsiControllers = [
+    TextEditingController(), // A
+    TextEditingController(), // B
+    TextEditingController(), // C
+    TextEditingController(), // D
+  ];
 
   String _tipeSoal = 'Pilihan Ganda';
-  String _kunciPilihan = 'A';
+  int _kunciJawabanIndex = 0; // 0 = A, 1 = B, dst.
+
+  @override
+  void dispose() {
+    _menitController.dispose();
+    _pertanyaanController.dispose();
+    for (var controller in _opsiControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   Future<void> _tambahSoalManual() async {
     if (_pertanyaanController.text.isEmpty) {
       _showModernSnackbar('Pertanyaan tidak boleh kosong!', Colors.orange);
       return;
     }
-    if (_tipeSoal == 'Pilihan Ganda' &&
-        (_opsiAController.text.isEmpty ||
-            _opsiBController.text.isEmpty ||
-            _opsiCController.text.isEmpty ||
-            _opsiDController.text.isEmpty)) {
-      _showModernSnackbar('Semua Opsi A, B, C, D harus diisi!', Colors.orange);
-      return;
+
+    // Validasi: Pastikan semua kotak opsi yang ada tidak kosong
+    if (_tipeSoal == 'Pilihan Ganda') {
+      bool adaOpsiKosong = _opsiControllers.any((c) => c.text.trim().isEmpty);
+      if (adaOpsiKosong) {
+        _showModernSnackbar(
+          'Semua kotak pilihan ganda harus diisi!',
+          Colors.orange,
+        );
+        return;
+      }
     }
 
     final konfirmasi = await showDialog<bool>(
@@ -444,14 +462,16 @@ class _DashboardGuruState extends State<DashboardGuru> {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
+
               if (_tipeSoal == 'Pilihan Ganda') ...[
-                _buildPreviewOpsi('A', _opsiAController.text),
-                _buildPreviewOpsi('B', _opsiBController.text),
-                _buildPreviewOpsi('C', _opsiCController.text),
-                _buildPreviewOpsi('D', _opsiDController.text),
+                // Menampilkan preview opsi secara dinamis
+                ...List.generate(_opsiControllers.length, (index) {
+                  String abjad = String.fromCharCode(65 + index);
+                  return _buildPreviewOpsi(abjad, _opsiControllers[index].text);
+                }),
                 const SizedBox(height: 16),
                 Text(
-                  'Kunci Jawaban: $_kunciPilihan',
+                  'Kunci Jawaban: ${String.fromCharCode(65 + _kunciJawabanIndex)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.green,
@@ -497,6 +517,12 @@ class _DashboardGuruState extends State<DashboardGuru> {
     );
 
     if (konfirmasi == true) {
+      // Mengubah List Controller menjadi List Text biasa untuk disimpan
+      List<String> semuaOpsiText = _opsiControllers
+          .map((c) => c.text.trim())
+          .toList();
+      String stringKunciJawaban = String.fromCharCode(65 + _kunciJawabanIndex);
+
       await FirebaseFirestore.instance
           .collection('ruangan')
           .doc(widget.kodeRuangan)
@@ -504,31 +530,29 @@ class _DashboardGuruState extends State<DashboardGuru> {
           .add({
             'tipe_soal': _tipeSoal == 'Pilihan Ganda' ? 'pilgan' : 'esai',
             'pertanyaan': _pertanyaanController.text.trim(),
-            'opsiA': _tipeSoal == 'Pilihan Ganda'
-                ? _opsiAController.text.trim()
+            'opsi': _tipeSoal == 'Pilihan Ganda'
+                ? semuaOpsiText
+                : [], // Data Array Baru
+            'KunciJawaban': _tipeSoal == 'Pilihan Ganda'
+                ? stringKunciJawaban
                 : '',
-            'opsiB': _tipeSoal == 'Pilihan Ganda'
-                ? _opsiBController.text.trim()
-                : '',
-            'opsiC': _tipeSoal == 'Pilihan Ganda'
-                ? _opsiCController.text.trim()
-                : '',
-            'opsiD': _tipeSoal == 'Pilihan Ganda'
-                ? _opsiDController.text.trim()
-                : '',
-            'KunciJawaban': _tipeSoal == 'Pilihan Ganda' ? _kunciPilihan : '',
           });
 
       _pertanyaanController.clear();
-      _opsiAController.clear();
-      _opsiBController.clear();
-      _opsiCController.clear();
-      _opsiDController.clear();
-      if (mounted)
+      for (var controller in _opsiControllers) {
+        controller.clear();
+      }
+      // Kembalikan ke opsi default (A)
+      setState(() {
+        _kunciJawabanIndex = 0;
+      });
+
+      if (mounted) {
         _showModernSnackbar(
           'Soal berhasil disimpan ke Ruangan ${widget.kodeRuangan}!',
           Colors.green,
         );
+      }
     }
   }
 
@@ -598,6 +622,7 @@ class _DashboardGuruState extends State<DashboardGuru> {
           .collection('soal')
           .get();
       for (var doc in snapshotSoal.docs) await doc.reference.delete();
+
       var snapshotHasil = await FirebaseFirestore.instance
           .collection('ruangan')
           .doc(widget.kodeRuangan)
@@ -605,22 +630,24 @@ class _DashboardGuruState extends State<DashboardGuru> {
           .get();
       for (var doc in snapshotHasil.docs) await doc.reference.delete();
 
-      if (mounted)
+      if (mounted) {
         _showModernSnackbar(
           'Ruangan ${widget.kodeRuangan} telah dibersihkan!',
           Colors.red,
         );
+      }
     }
   }
 
   Future<void> _aturDanMulaiUjian() async {
     String menitTeks = _menitController.text.trim();
     int? menitUjian = int.tryParse(menitTeks);
-    if (menitUjian == null || menitUjian <= 0)
+    if (menitUjian == null || menitUjian <= 0) {
       return _showModernSnackbar(
         'Durasi WAJIB diisi angka valid!',
         Colors.orange,
       );
+    }
 
     await FirebaseFirestore.instance
         .collection('ruangan')
@@ -935,7 +962,7 @@ class _DashboardGuruState extends State<DashboardGuru> {
               items: const [
                 DropdownMenuItem(
                   value: 'Pilihan Ganda',
-                  child: Text('Pilihan Ganda (A, B, C, D)'),
+                  child: Text('Pilihan Ganda (Dinamis)'),
                 ),
                 DropdownMenuItem(
                   value: 'Esai',
@@ -954,55 +981,77 @@ class _DashboardGuruState extends State<DashboardGuru> {
                 alignLabelWithHint: true,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
             if (_tipeSoal == 'Pilihan Ganda') ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _opsiAController,
-                      decoration: const InputDecoration(labelText: 'Opsi A'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _opsiBController,
-                      decoration: const InputDecoration(labelText: 'Opsi B'),
-                    ),
-                  ),
-                ],
+              const Text(
+                'Pilihan Jawaban (Tandai bulat hijau untuk kunci jawaban):',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black54,
+                ),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _opsiCController,
-                      decoration: const InputDecoration(labelText: 'Opsi C'),
-                    ),
+
+              // BARU: UI Opsi yang bisa ditambah secara dinamis
+              ...List.generate(_opsiControllers.length, (index) {
+                String abjad = String.fromCharCode(
+                  65 + index,
+                ); // 0 -> A, 1 -> B, dst.
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Radio<int>(
+                        value: index,
+                        groupValue: _kunciJawabanIndex,
+                        activeColor: const Color(0xFF10B981),
+                        onChanged: (val) =>
+                            setState(() => _kunciJawabanIndex = val!),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _opsiControllers[index],
+                          decoration: InputDecoration(
+                            labelText: 'Opsi $abjad',
+                            prefixText: '$abjad. ',
+                          ),
+                        ),
+                      ),
+                      if (_opsiControllers.length >
+                          2) // Munculkan tong sampah jika opsi > 2
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _opsiControllers[index].dispose();
+                              _opsiControllers.removeAt(index);
+                              if (_kunciJawabanIndex >=
+                                  _opsiControllers.length) {
+                                _kunciJawabanIndex =
+                                    _opsiControllers.length - 1;
+                              }
+                            });
+                          },
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _opsiDController,
-                      decoration: const InputDecoration(labelText: 'Opsi D'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _kunciPilihan,
-                items: const [
-                  DropdownMenuItem(value: 'A', child: Text('Kunci Jawaban: A')),
-                  DropdownMenuItem(value: 'B', child: Text('Kunci Jawaban: B')),
-                  DropdownMenuItem(value: 'C', child: Text('Kunci Jawaban: C')),
-                  DropdownMenuItem(value: 'D', child: Text('Kunci Jawaban: D')),
-                ],
-                onChanged: (val) => setState(() => _kunciPilihan = val!),
-                decoration: const InputDecoration(
-                  labelText: 'Pilih Kunci yang Benar',
+                );
+              }),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _opsiControllers.add(TextEditingController());
+                    });
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Tambah Pilihan Baru'),
                 ),
               ),
             ] else ...[
@@ -1107,8 +1156,9 @@ class _DashboardGuruState extends State<DashboardGuru> {
                 .orderBy('waktu_submit', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting)
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
+              }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
                   child: Column(
